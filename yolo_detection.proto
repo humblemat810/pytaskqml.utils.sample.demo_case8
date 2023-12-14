@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+
+message RequestData {
+  string messageuuid = 1;
+  repeated float image = 2 [packed=true];
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message bbc{
+  float x_center = 1;
+  float y_center = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message Detection{
+  string classlabel = 1;
+  bbc bbc = 2;
+  float confidence = 3;
+}
+
+message ResponseData{
+  string messageuuid = 1;
+  repeated Detection Detection = 2;
+}

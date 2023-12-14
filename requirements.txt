@@ -1,0 +1,6 @@
+matplotlib
+pycocotools
+tqdm
+pillow
+opencv-python
+tensorboard >= 1.14
