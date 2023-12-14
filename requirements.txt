@@ -1,6 +1,10 @@
+torch
+torchvision
+tensorboard
+scipy
+numpy
 matplotlib
-pycocotools
+opencv_python
 tqdm
-pillow
-opencv-python
-tensorboard >= 1.14
+Pillow
+h5py
