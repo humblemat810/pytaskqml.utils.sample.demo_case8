@@ -71,11 +71,11 @@ logger.addHandler(qfh)
 logger.debug('start loading module')
 
 
-from worker_demo_classes import word_count_worker
+from worker_demo_classes import torch_yolov4_worker
 def main():
     import sys
     print(sys.modules[__name__])
-    my_ML_socket_server = word_count_worker(server_address = ('localhost', int(port) ),
+    my_ML_socket_server = torch_yolov4_worker(server_address = ('localhost', int(port) ),
                                             management_port=management_port, min_start_processing_length = 42)
     my_ML_socket_server.start()
     my_ML_socket_server.graceful_stop_done.wait()
