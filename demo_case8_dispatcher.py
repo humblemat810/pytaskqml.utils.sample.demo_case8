@@ -13,15 +13,10 @@ import configparser
 config = configparser.ConfigParser()
 if args.config:    
     config.read(args.config)
-port = args.port 
-if port is None:
-    port = config.get("dispatcher", "port")    
-port = int(port)
 management_port = config.get("dispatcher", "management-port")
 if management_port is None:
     management_port = args.management_port
 management_port = int(management_port)
-min_start_processing_length = config.get("dispatcher", "min_start_processing_length")
 log_level = config.get("logger", "level")
 if log_level is None:
     log_level = args.log_level
@@ -49,24 +44,7 @@ logger.setLevel(log_level)
 
 formatter = logging.Formatter("%(asctime)s - %(filename)s - %(lineno)d - %(levelname)s - %(message)s",
                               )
-from pytaskqml.task_dispatcher import Socket_Producer_Side_Worker
-class my_yolo_v4_socket_producer_side_worker(Socket_Producer_Side_Worker):
-    def dispatch(self, task_info, *args, **kwargs):
-        # this has to be implemented to tell what exactly to do to dispatch data to worker
-        # such as what protocol e.g. protobuf, to use to communicate with worker and also #
-        # transfer data or ref to data
-        from pytaskqml.utils.sample.serialisers import yolo_detection_pb2
-        message = yolo_detection_pb2.RequestData()
-        message.messageuuid = task_info[0][1]
-        message.image = task_info[1].image
-        message.width = task_info[1].width
-        message.height = task_info[1].height
-        serialized_data = message.SerializeToString()
-        
-        return serialized_data
-    def _parse_task_info(self):
-        pass
-    pass
+
 
 
 # Add the console handler to the logger
@@ -86,7 +64,7 @@ qfh.setFormatter(formatter)
 logger.addHandler(qfh)
 import pytaskqml.task_dispatcher as task_dispatcher
 task_dispatcher.modulelogger = logger
-from pytaskqml.utils.sample.dispatcher_side_demo_classes import my_word_count_config_aware_worker_abstract_factory_getter, my_word_count_socket_input_dispatcher
+from dispatcher_side_demo_case8_classes import my_yolo_pytorch_dispatcher, my_yolo_pytorch_socket_producer_side_worker
 import threading
 import time
 from types import MethodType
@@ -103,16 +81,14 @@ def main():
     import sys
     print(sys.modules[__name__])
 
-    my_worker_factory = my_word_count_config_aware_worker_abstract_factory_getter()
-    my_task_worker_manager = my_word_count_socket_input_dispatcher(
+    my_worker_factory = my_yolo_pytorch_socket_producer_side_worker
+    my_task_worker_manager = my_yolo_pytorch_dispatcher(
                 worker_factory= my_worker_factory, 
                 worker_config = worker_config,
                 output_minibatch_size = 24,
-                data_ingress_info = "localhost:"+str(port),
                 management_port = management_port,
                 logger = logger,
-                retry_watcher_on = True,
-                min_start_processing_length = min_start_processing_length
+                retry_watcher_on = True
             )
     
     th = threading.Thread(target = my_task_worker_manager.start, args = [])
@@ -125,37 +101,36 @@ def main():
     def dispatch_from_main():
         # this function demonstrate main dispatch data such as video frame data or ref to video frame for example
         from pytaskqml.utils.sample.serialisers.plain_string_message_pb2 import MyMessage
-        import uuid
-        from pytaskqml.utils.reconnecting_socket import ReconnectingSocket
-        client_socket = ReconnectingSocket(('localhost', int(port)))
-        client_socket.connect()
+        
         #print('dispatcher socket input found and connected')
         cnt = 0
         last_run = time.time()
-        words = ["apple", "banana", "cherry", "orange", "grape", "kiwi"]
         while not my_task_worker_manager.stop_flag.is_set():
             cnt+=1
-            import random
-            def generate_random_word():
-                return random.choice(words)
-            frame_data = generate_random_word()#{"frame_number": cnt, "face": np.random.rand(96,96,6), 'mel': np.random.rand(80,16)}
-            message = MyMessage()
-            message.messageuuid = str(uuid.uuid1())
-            message.strmessage = frame_data
-            serialized_data = message.SerializeToString()
-            my_send_class._send(client_socket, serialized_data)
-            now_time = time.time()
-            logger.info(f"sent {cnt} dt:{now_time - last_run}")
-            #logger.debug(f'__main__ : cnt {cnt} added, interval = {now_time - last_run}')
-            #time.sleep(0.002)
-            #print("dispatched", now_time-last_run)
-            last_run = now_time
+            import cv2
+            video_save_path = "sample.mp4"
+            capture = cv2.VideoCapture(filename = video_save_path)
+            #fps = capture.get(cv2.CAP_PROP_FPS)
+            if video_save_path!="":
+                fourcc  = cv2.VideoWriter_fourcc(*'XVID')
+                size    = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            #    out     = cv2.VideoWriter(video_save_path, fourcc, fps, size)
+
             
+            while True:
+                ret, frame_data = capture.read()#{"frame_number": cnt, "face": np.random.rand(96,96,6), 'mel': np.random.rand(80,16)}
+                if ret:
+                    pass
+                else:
+                    break
+                #from copy import deepcopy
+                my_task_worker_manager.dispatch(frame_data)
+                now_time = time.time()
+                logger.debug(f'__main__ : cnt {cnt} added, interval = {now_time - last_run}')
+                last_run = now_time
+        
             
         
-        client_socket.retry_enabled = False
-        client_socket.close()
-        print('demo socket disabled retry, closed')
     th = threading.Thread(target = dispatch_from_main, args = [], name='dispatch_from_main')
     th.start()
     while not my_task_worker_manager.stop_flag.is_set():
