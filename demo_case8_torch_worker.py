@@ -8,7 +8,8 @@ parser = argparse.ArgumentParser(description='Demo worker')
 parser.add_argument('--port', type=int, help='Port number', dest = 'port', default = "12345")
 parser.add_argument('--management-port', type=str, help='Management Port number', dest = 'management_port', default = "8001")
 parser.add_argument('--log-level', dest="log_level")
-parser.add_argument('--config', help='Configuration file path')
+parser.add_argument('--config', help='Configuration file path', default="worker.ini")
+parser.add_argument('--min-start-processing_length', dest = "min_start_processing_length", help="buffer minimum batch size to start processing")
 
 parser.add_argument('--log-screen', action='store_const', const=True, default=False, help='Enable log to screen', dest="log_screen")
 
@@ -34,7 +35,10 @@ if log_level is None:
 log_screen = args.log_screen
 if log_screen is None:
     log_screen = config.get("logger", "logscreen")
-    
+min_start_processing_length = args.min_start_processing_length
+if min_start_processing_length is None:
+    min_start_processing_length = config.get("worker", "min_start_processing_length")
+
 if type(log_screen) is str:
     if log_screen.upper() == 'FALSE':
         log_screen = False
@@ -71,12 +75,12 @@ logger.addHandler(qfh)
 logger.debug('start loading module')
 
 
-from worker_demo_classes import word_count_worker
+from worker_demo_case8_classes import yolo_v4_worker
 def main():
     import sys
     print(sys.modules[__name__])
-    my_ML_socket_server = word_count_worker(server_address = ('localhost', int(port) ),
-                                            management_port=management_port, min_start_processing_length = 42)
+    my_ML_socket_server = yolo_v4_worker(server_address = ('localhost', int(port) ),
+                                            management_port=management_port, min_start_processing_length = min_start_processing_length)
     my_ML_socket_server.start()
     my_ML_socket_server.graceful_stop_done.wait()
     qfh.stop_flag.set()

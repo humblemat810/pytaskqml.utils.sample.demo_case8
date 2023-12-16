@@ -1,19 +1,23 @@
 import multiprocessing
 import subprocess
+import os
+import  yappi_main_wrapper
 
+yappi_main_wrapper_path = os.path.abspath(yappi_main_wrapper.__file__)
 import pathlib
+import sys
 def run_worker(i_worker = 0):
     # Define the arguments for the first Python file
-    args_file1 = ["python",'yappi_main_wrapper.py', 
+    args_file1 = [sys.executable, yappi_main_wrapper_path, 
                   #'-o', str((pathlib.Path(".")/'worker12345.ystat').resolve()),  
-                  r"demo_case1_wordcount_worker.main", f"worker{12345+i_worker}", "--port", str(12345 + i_worker), "--management-port", str(22345+0), "--config", 'worker.ini']
+                   r"demo_case8_torch_worker.main", f"worker{12345+i_worker}", "--port", str(12345 + i_worker), "--management-port", str(22345+i_worker), "--config", 'worker.ini']
     subprocess.call(args_file1)
 
 def run_dispatcher(n_worker):
     # Define the arguments for the second Python file
-    args_file2 = ["python",'yappi_main_wrapper.py', 
+    args_file2 = [sys.executable, yappi_main_wrapper_path, 
                   #'-o', str((pathlib.Path(".")/'dispatcher.ystat').resolve()), 
-                  r"demo_case1_dispatcher.main", 'dispatcher',"--management-port", "18000", "--config", 'dispatcher_case2.ini', '--n-worker', f"{n_worker}"]
+                  r"demo_case8_dispatcher.main", 'dispatcher',"--management-port", "18000", "--config", 'dispatcher_case8.ini', '--n-worker', f"{n_worker}"]
     subprocess.call(args_file2)
 
 import os
@@ -45,7 +49,9 @@ def main(n_worker = 1):
             p.start()
         
         import time
-        time.sleep(11.5)
+        
+        time.sleep(15.5)
+            
         import requests
         import threading
         def url_request_with_my_err_handling(url):
@@ -93,6 +99,8 @@ def main(n_worker = 1):
         shutdown_ths.append(threading.Thread(target = shutdown_server, name = 'shutdown server'))
         for th in shutdown_ths:
             th.start()
+        for th in shutdown_ths:
+            th._started.wait()
         for th in shutdown_ths:
             th.join()
         # Wait for both processes to finish
