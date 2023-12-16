@@ -11,8 +11,8 @@ message RequestData {
 message bbc{
   float x_center = 1;
   float y_center = 2;
-  int32 width = 3;
-  int32 height = 4;
+  float width = 3;
+  float height = 4;
 }
 
 message Detection{
@@ -23,5 +23,5 @@ message Detection{
 
 message ResponseData{
   string messageuuid = 1;
-  repeated Detection Detection = 2;
+  repeated Detection detection = 2 [packed=false];
 }
