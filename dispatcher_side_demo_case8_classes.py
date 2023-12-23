@@ -15,14 +15,14 @@ class my_yolo_pytorch_dispatcher(Task_Worker_Manager):
 
 
 class my_yolo_pytorch_socket_producer_side_worker(Socket_Producer_Side_Worker):
-    
-    def _parse_task_info(self, single_buffer_result):
+    def parse_task_info(self, serialized_data):
+        
         from yolo_detection_pb2 import ResponseData
         
         
         
         response_data = ResponseData()
-        response_data.ParseFromString(single_buffer_result)
+        response_data.ParseFromString(serialized_data)
         uuid = response_data.messageuuid        
         predictions = response_data.detection
         prediction_parsed = [{
@@ -30,19 +30,9 @@ class my_yolo_pytorch_socket_producer_side_worker(Socket_Producer_Side_Worker):
             'classlabel' : i.classlabel,
             'confidence': i.confidence
         } for i in predictions]
+        return prediction_parsed
 
 
-        task_time = self.uuid_to_time.get(uuid)
-        if task_time is not None:
-            task_info = (self.uuid_to_time[uuid], uuid)
-            success = True
-            map_result = prediction_parsed
-        else: # previous retry already solved in a race condition
-            success = False
-            task_info = None
-            map_result = None
-        
-        return success, task_info, map_result
     
     def dispatch(self, task_info, *args, **kwargs):
         # this has to be implemented to tell what exactly to do to dispatch data to worker
